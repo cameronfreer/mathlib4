@@ -29,6 +29,9 @@ which makes the padding semantically neutral.
 - `IndexCoding.ofEncodable`: the coding of an encodable type into `ℕ`, which recovers `L_{ω₁ω}`
   from a countable-carrier `L_{∞ω}` formula. This is deliberately stated for `Encodable`, not
   `Countable`: the coding itself involves no choice.
+- `IndexCoding.ofEquiv`: the coding induced by an equivalence of carriers, whose `decode` is
+  total. Reindexing along it is genuine syntactic transport (e.g. `ULift` universe
+  adjustment), with a syntactic round trip.
 - `IndexCoding.pad`: total extension of a family along a coding.
 -/
 
@@ -50,6 +53,17 @@ structure IndexCoding (ι : Type uι) (κ : Type uκ) where
   decode_encode : ∀ i, decode (encode i) = some i
 
 namespace IndexCoding
+
+/-- Two codings with the same `encode` and `decode` are equal; the coherence proof is
+irrelevant. -/
+@[ext]
+theorem ext {c₁ c₂ : IndexCoding ι κ} (he : c₁.encode = c₂.encode)
+    (hd : c₁.decode = c₂.decode) : c₁ = c₂ := by
+  cases c₁
+  cases c₂
+  cases he
+  cases hd
+  rfl
 
 /-- The identity coding. -/
 protected def id (ι : Type uι) : IndexCoding ι ι :=
@@ -73,6 +87,20 @@ def sumInr (ι : Type uι) (κ : Type uκ) : IndexCoding κ (ι ⊕ κ) :=
 carrier can be upgraded noncomputably via `Encodable.ofCountable` at the call site. -/
 def ofEncodable (ι : Type uι) [Encodable ι] : IndexCoding ι ℕ :=
   ⟨Encodable.encode, Encodable.decode, Encodable.encodek⟩
+
+/-- The coding induced by an equivalence of carriers. Its `decode` is total, so reindexing
+along it introduces no padding: this is the case of genuine syntactic transport (in
+particular the `ULift` universe adjustment), as opposed to an arbitrary coding, which
+preserves semantics but pads. -/
+def ofEquiv (e : ι ≃ κ) : IndexCoding ι κ :=
+  ⟨e, fun k ↦ some (e.symm k), fun i ↦ by simp⟩
+
+/-- The two codings of an equivalence compose to the identity coding. -/
+@[simp]
+theorem ofEquiv_symm_comp (e : ι ≃ κ) :
+    (ofEquiv e.symm).comp (ofEquiv e) = IndexCoding.id ι := by
+  refine ext (funext fun i ↦ ?_) (funext fun i ↦ ?_) <;>
+    simp [comp, ofEquiv, IndexCoding.id]
 
 /-- Total extension of a family along a coding: decoded indices select a branch, undecodable
 ones get the default. -/

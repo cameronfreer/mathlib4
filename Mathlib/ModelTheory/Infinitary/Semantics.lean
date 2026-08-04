@@ -24,7 +24,7 @@ separate `L_{ω₁ω}` semantics, and no universe-specialized lemma set.
 
 ## Main statements
 
-- `realize_codediInf`, `realize_codediSup`: the `⊤`/`⊥` padding of the coded connectives is
+- `realize_iInfAlong`, `realize_iSupAlong`: the `⊤`/`⊥` padding of the coded connectives is
   semantically neutral, generically in the coding.
 - `realize_reindex`: carrier transport preserves realization (in both directions, being an
   iff), hence also semantic equivalence.
@@ -119,9 +119,9 @@ theorem realize_ex {φ : L.BoundedFormulaInf ι α (n + 1)} :
 /-- The `⊤`-padding of a coded conjunction is semantically neutral, generically in the
 coding. -/
 @[simp]
-theorem realize_codediInf {c : IndexCoding ι κ} {φs : ι → L.BoundedFormulaInf κ α n} :
-    (codediInf c φs).Realize v xs ↔ ∀ i, (φs i).Realize v xs := by
-  simp only [codediInf, realize_iInf]
+theorem realize_iInfAlong {c : IndexCoding ι κ} {φs : ι → L.BoundedFormulaInf κ α n} :
+    (iInfAlong c φs).Realize v xs ↔ ∀ i, (φs i).Realize v xs := by
+  simp only [iInfAlong, realize_iInf]
   constructor
   · intro h i
     have hi := h (c.encode i)
@@ -136,9 +136,9 @@ theorem realize_codediInf {c : IndexCoding ι κ} {φs : ι → L.BoundedFormula
 /-- The `⊥`-padding of a coded disjunction is semantically neutral, generically in the
 coding. -/
 @[simp]
-theorem realize_codediSup {c : IndexCoding ι κ} {φs : ι → L.BoundedFormulaInf κ α n} :
-    (codediSup c φs).Realize v xs ↔ ∃ i, (φs i).Realize v xs := by
-  simp only [codediSup, realize_iSup]
+theorem realize_iSupAlong {c : IndexCoding ι κ} {φs : ι → L.BoundedFormulaInf κ α n} :
+    (iSupAlong c φs).Realize v xs ↔ ∃ i, (φs i).Realize v xs := by
+  simp only [iSupAlong, realize_iSup]
   constructor
   · rintro ⟨k, hk⟩
     rcases hd : c.decode k with _ | i
@@ -170,11 +170,11 @@ theorem realize_reindex (c : IndexCoding ι κ) :
     exact forall_congr' fun y ↦ ih v (Fin.snoc xs y)
   | iSup φs ih =>
     intro v xs
-    simp only [reindex_iSup, realize_codediSup]
+    simp only [reindex_iSup, realize_iSupAlong]
     exact exists_congr fun i ↦ ih i v xs
   | iInf φs ih =>
     intro v xs
-    simp only [reindex_iInf, realize_codediInf]
+    simp only [reindex_iInf, realize_iInfAlong]
     exact forall_congr' fun i ↦ ih i v xs
 
 /-- Recoding an encodable-carrier formula into `L_{ω₁ω}` preserves realization. -/

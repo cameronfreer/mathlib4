@@ -1,5 +1,6 @@
 import Mathlib.ModelTheory.Infinitary.Semantics
 import Mathlib.ModelTheory.Infinitary.QuantifierRank
+import Mathlib.ModelTheory.Infinitary.Countability
 
 /-!
 # Acceptance probes for the carrier-parameterized infinitary syntax
@@ -16,7 +17,13 @@ ONE branching carrier `ι` per formula (rather than quantifying over a fresh ind
    `M ⊕ N`, with semantically neutral padding;
 4. `Encodable` recoding into `L_{ω₁ω}`, including the empty carrier (no hidden `Nonempty`);
 5. quantifier-rank transport under recoding, including at the empty carrier;
-6. structural induction through the `BoundedFormulaω` abbreviation.
+6. structural induction through the `BoundedFormulaω` abbreviation;
+7. formula-sensitive countability — every formula is countable under `[Countable ι]`, the
+   finitary embedding is countable and has index bound `0` at ARBITRARY (even uncountable)
+   carriers with no carrier assumption, and the proof-directed `ofCountable` converts it to
+   `BoundedFormulaω` with realization preserved;
+8. equivalence codings round-trip syntactically — `reindex` genuinely replaces a `ULift`
+   universe-lift operation, with an exact syntactic inverse.
 -/
 
 universe u v u' uι w
@@ -59,7 +66,7 @@ example {L : Language.{u, v}} {α : Type u'} {M : Type w} [L.Structure M] {n : �
 /-! ## 3. The Karp shape at the single carrier `M ⊕ N`
 
 The backward direction of Karp's theorem needs an `N`-indexed conjunction (forth) and an
-`M`-indexed one (back) over the SAME formula type. These are `codediInf` at the two sum
+`M`-indexed one (back) over the SAME formula type. These are `iInfAlong` at the two sum
 codings; the padding is semantically neutral so the classical argument goes through verbatim.
 The full theorem, proved against a genuine back-and-forth system, lives in the
 `infinitary-logic` development; these probes reproduce its three load-bearing steps. -/
@@ -72,26 +79,26 @@ variable {L : Language.{u, v}} {M N : Type w} [L.Structure M] [L.Structure N] {k
 example (a : Fin k → M) (m : M)
     (ψ : N → L.BoundedFormulaInf (M ⊕ N) (Fin k) 1)
     (hψ : ∀ j : N, (ψ j).Realize a (Fin.snoc Fin.elim0 m)) :
-    (codediInf (.sumInr M N) ψ).ex.Realize a Fin.elim0 := by
+    (iInfAlong (.sumInr M N) ψ).ex.Realize a Fin.elim0 := by
   rw [realize_ex]
-  exact ⟨m, by rw [realize_codediInf]; exact hψ⟩
+  exact ⟨m, by rw [realize_iInfAlong]; exact hψ⟩
 
 /-- Back: the mirror, indexed by `M`, over the same formula type. -/
 example (b : Fin k → N) (n' : N)
     (ψ : M → L.BoundedFormulaInf (M ⊕ N) (Fin k) 1)
     (hψ : ∀ i : M, (ψ i).Realize b (Fin.snoc Fin.elim0 n')) :
-    (codediInf (.sumInl M N) ψ).ex.Realize b Fin.elim0 := by
+    (iInfAlong (.sumInl M N) ψ).ex.Realize b Fin.elim0 := by
   rw [realize_ex]
-  exact ⟨n', by rw [realize_codediInf]; exact hψ⟩
+  exact ⟨n', by rw [realize_iInfAlong]; exact hψ⟩
 
 /-- Refutation: if each conjunct fails at its own witness, the existential closure fails. -/
 example (b : Fin k → N)
     (ψ : N → L.BoundedFormulaInf (M ⊕ N) (Fin k) 1)
     (hbad : ∀ y : N, ¬(ψ y).Realize b (Fin.snoc Fin.elim0 y)) :
-    ¬(codediInf (.sumInr M N) ψ).ex.Realize b Fin.elim0 := by
+    ¬(iInfAlong (.sumInr M N) ψ).ex.Realize b Fin.elim0 := by
   rw [realize_ex]
   rintro ⟨y, hy⟩
-  rw [realize_codediInf] at hy
+  rw [realize_iInfAlong] at hy
   exact hbad y (hy y)
 
 end Karp
@@ -163,5 +170,76 @@ example {L : Language.{u, v}} {α : Type u'} {M : Type w} [L.Structure M] {k : �
 example {L : Language.{u, v}} {α : Type u'} (φs : ℕ → L.BoundedFormulaω α 0) :
     L.BoundedFormulaω α 0 :=
   .iInf φs
+
+/-! ## 7. Formula-sensitive countability
+
+The two notions kept distinct: "the carrier is countable" versus "this formula actually uses
+an infinitary node." `Type` is an uncountable carrier at universe 1; the finitary embedding
+into it must remain countable, convertible, and of index bound `0`. -/
+
+section Countability
+
+open BoundedFormulaInf
+
+variable {L : Language.{u, v}} {α : Type u'} {M : Type w} [L.Structure M] {n : ℕ}
+variable {v : α → M} {xs : Fin n → M}
+
+/-- Under a countable carrier, every formula is countable — including infinitary ones. -/
+example {ι : Type uι} [Countable ι] (φs : ι → L.BoundedFormulaInf ι α n) :
+    (iInf φs).IsCountable :=
+  isCountable_of_countable _
+
+/-- The finitary embedding is countable at an UNCOUNTABLE carrier, with no assumption. -/
+example (φ : L.BoundedFormula α n) : (φ.toInf (ι := Type)).IsCountable :=
+  φ.isCountable_toInf
+
+/-- A finitary formula at the uncountable carrier `Type` converts to `BoundedFormulaω` —
+this is exactly where `toOmega` is unavailable (no `Encodable Type`). -/
+noncomputable example (φ : L.BoundedFormula α n) : L.BoundedFormulaω α n :=
+  ofCountable φ.isCountable_toInf (ι := Type)
+
+/-- ...and the conversion preserves realization all the way back to the finitary formula. -/
+example (φ : L.BoundedFormula α n) :
+    (ofCountable (φ.isCountable_toInf (ι := Type))).Realize v xs ↔ φ.Realize v xs := by
+  rw [BoundedFormulaInf.realize_ofCountable, BoundedFormula.realize_toInf]
+
+/-- The index bound is formula-sensitive: `0` for the finitary embedding at an uncountable
+carrier... -/
+example (φ : L.BoundedFormula α n) : (φ.toInf (ι := Type)).indexBound = 0 :=
+  φ.indexBound_toInf
+
+/-- ...at most the carrier's cardinality for every formula... -/
+example {ι : Type uι} (φ : L.BoundedFormulaInf ι α n) : φ.indexBound ≤ Cardinal.mk ι :=
+  indexBound_le_mk φ
+
+/-- ...and exactly the carrier's cardinality once an infinitary node occurs. -/
+example {ι : Type uι} (φs : ι → L.BoundedFormulaInf ι α n) :
+    (iInf φs).indexBound = Cardinal.mk ι :=
+  indexBound_iInf
+
+end Countability
+
+/-! ## 8. Equivalence codings: syntactic round trip (the `liftUI` replacement) -/
+
+section EquivRoundTrip
+
+open BoundedFormulaInf
+
+variable {L : Language.{u, v}} {α : Type u'} {n : ℕ}
+
+/-- The round trip along any equivalence of carriers is the syntactic identity. -/
+example {ι : Type uι} {κ : Type w} (e : ι ≃ κ) (φ : L.BoundedFormulaInf ι α n) :
+    reindex (.ofEquiv e.symm) (reindex (.ofEquiv e) φ) = φ :=
+  reindex_ofEquiv_symm_reindex_ofEquiv e φ
+
+/-- Instantiated at `ULift`: lifting a formula's carrier to a higher universe and dropping
+back down recovers the original formula syntactically — not merely semantically. This is the
+universe-lift use case of the old two-inductive design, closed exactly. -/
+example {ι : Type uι} (φ : L.BoundedFormulaInf ι α n) :
+    reindex (.ofEquiv (Equiv.ulift.symm : ι ≃ ULift.{w} ι).symm)
+      (reindex (.ofEquiv (Equiv.ulift.symm : ι ≃ ULift.{w} ι)) φ) = φ :=
+  reindex_ofEquiv_symm_reindex_ofEquiv _ φ
+
+end EquivRoundTrip
 
 end FirstOrder.Language

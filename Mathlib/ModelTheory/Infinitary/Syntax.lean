@@ -25,11 +25,11 @@ quantifying over a fresh index type at every node. Consequences:
   `BoundedFormulaω L α n := BoundedFormulaInf L ℕ α n` has exactly the universe
   `Type (max u v u')` of the finitary `BoundedFormula`.
 - An `ι`-indexed conjunction at a larger carrier `κ` is expressed through an `IndexCoding`
-  (`codediInf`/`codediSup`), padding undecodable branches with `⊤`/`⊥`; whole formulas are
+  (`iInfAlong`/`iSupAlong`), padding undecodable branches with `⊤`/`⊥`; whole formulas are
   transported between carriers by `reindex`, which is functorial (`reindex_id`, `reindex_comp`)
   and semantics-preserving (`realize_reindex`, in `Infinitary/Semantics.lean`).
 - Karp's theorem, the consumer that forces arbitrary index types, needs only the single carrier
-  `M ⊕ N`: its `M`-indexed and `N`-indexed separating conjunctions are `codediInf` at the two
+  `M ⊕ N`: its `M`-indexed and `N`-indexed separating conjunctions are `iInfAlong` at the two
   sum codings.
 
 ## Main definitions
@@ -38,7 +38,7 @@ quantifying over a fresh index type at every node. Consequences:
   in `α`, and `n` free *bound-variable* slots.
 - `FirstOrder.Language.BoundedFormulaω`: the `ι := ℕ` specialization (an `abbrev`, so all
   `BoundedFormulaInf` API applies definitionally).
-- `FirstOrder.Language.BoundedFormulaInf.codediInf`, `codediSup`: coded infinitary connectives.
+- `FirstOrder.Language.BoundedFormulaInf.iInfAlong`, `iSupAlong`: coded infinitary connectives.
 - `FirstOrder.Language.BoundedFormulaInf.reindex`: carrier transport along an `IndexCoding`.
 - `FirstOrder.Language.BoundedFormulaInf.toOmega`: recoding an encodable-carrier formula into
   `L_{ω₁ω}`.
@@ -117,13 +117,13 @@ protected def ex (φ : L.BoundedFormulaInf ι α (n + 1)) : L.BoundedFormulaInf 
 
 /-- An `ι`-indexed infinitary conjunction at carrier `κ`, along a coding: decoded indices
 select their conjunct, undecodable ones are padded with `⊤`. -/
-def codediInf (c : IndexCoding ι κ) (φs : ι → L.BoundedFormulaInf κ α n) :
+def iInfAlong (c : IndexCoding ι κ) (φs : ι → L.BoundedFormulaInf κ α n) :
     L.BoundedFormulaInf κ α n :=
   .iInf (c.pad ⊤ φs)
 
 /-- An `ι`-indexed infinitary disjunction at carrier `κ`, along a coding: decoded indices
 select their disjunct, undecodable ones are padded with `⊥`. -/
-def codediSup (c : IndexCoding ι κ) (φs : ι → L.BoundedFormulaInf κ α n) :
+def iSupAlong (c : IndexCoding ι κ) (φs : ι → L.BoundedFormulaInf κ α n) :
     L.BoundedFormulaInf κ α n :=
   .iSup (c.pad ⊥ φs)
 
@@ -136,8 +136,8 @@ def reindex (c : IndexCoding ι κ) : ∀ {n}, L.BoundedFormulaInf ι α n → L
   | _, .rel R ts => .rel R ts
   | _, .imp φ ψ => (reindex c φ).imp (reindex c ψ)
   | _, .all φ => (reindex c φ).all
-  | _, .iSup φs => codediSup c fun i ↦ reindex c (φs i)
-  | _, .iInf φs => codediInf c fun i ↦ reindex c (φs i)
+  | _, .iSup φs => iSupAlong c fun i ↦ reindex c (φs i)
+  | _, .iInf φs => iInfAlong c fun i ↦ reindex c (φs i)
 
 section ReindexEqs
 
@@ -169,12 +169,12 @@ theorem reindex_all (φ : L.BoundedFormulaInf ι α (n + 1)) :
 
 @[simp]
 theorem reindex_iSup (φs : ι → L.BoundedFormulaInf ι α n) :
-    reindex c (.iSup φs) = codediSup c fun i ↦ reindex c (φs i) :=
+    reindex c (.iSup φs) = iSupAlong c fun i ↦ reindex c (φs i) :=
   rfl
 
 @[simp]
 theorem reindex_iInf (φs : ι → L.BoundedFormulaInf ι α n) :
-    reindex c (.iInf φs) = codediInf c fun i ↦ reindex c (φs i) :=
+    reindex c (.iInf φs) = iInfAlong c fun i ↦ reindex c (φs i) :=
   rfl
 
 @[simp]
@@ -249,8 +249,19 @@ theorem reindex_comp (c₂ : IndexCoding κ μ) (c₁ : IndexCoding ι κ) :
         rw [(c₂.comp c₁).pad_of_decode_some hc, c₂.pad_of_decode_some h₂,
           c₁.pad_of_decode_some h₁, ih i]
 
+/-- **Equivalence codings give genuine syntactic transport**: reindexing along an equivalence
+and back is the identity, syntactically. Instantiated at `Equiv.ulift`, this is the
+universe-lift operation on formulas together with its exact inverse — an arbitrary coding
+preserves semantics but pads; an equivalence coding round-trips. -/
+@[simp]
+theorem reindex_ofEquiv_symm_reindex_ofEquiv (e : ι ≃ κ) (φ : L.BoundedFormulaInf ι α n) :
+    reindex (.ofEquiv e.symm) (reindex (.ofEquiv e) φ) = φ := by
+  rw [← reindex_comp, IndexCoding.ofEquiv_symm_comp, reindex_id]
+
 /-- Recode a formula over an encodable carrier into `L_{ω₁ω}`. No choice is involved; for a
-merely `Countable` carrier, obtain an `Encodable` instance via `Encodable.ofCountable` first. -/
+merely `Countable` carrier, obtain an `Encodable` instance via `Encodable.ofCountable` first.
+This is the uniform, whole-formula conversion; the formula-sensitive conversion from an
+`IsCountable` proof is `ofCountable` in `Infinitary/Countability.lean`. -/
 def toOmega [Encodable ι] (φ : L.BoundedFormulaInf ι α n) : L.BoundedFormulaω α n :=
   reindex (.ofEncodable ι) φ
 

@@ -123,7 +123,7 @@ theorem qrank_reindex (c : IndexCoding ι κ) :
   | iSup φs ih =>
     haveI : Small.{max uι uκ} ι := small_max.{uκ} ι
     haveI : Small.{max uι uκ} κ := small_max.{uι} κ
-    simp only [reindex_iSup, codediSup, qrank_iSup]
+    simp only [reindex_iSup, iSupAlong, qrank_iSup]
     rw [lift_iSup_ord, lift_iSup_ord]
     apply le_antisymm
     · refine Ordinal.iSup_le fun k ↦ ?_
@@ -140,7 +140,7 @@ theorem qrank_reindex (c : IndexCoding ι κ) :
   | iInf φs ih =>
     haveI : Small.{max uι uκ} ι := small_max.{uκ} ι
     haveI : Small.{max uι uκ} κ := small_max.{uι} κ
-    simp only [reindex_iInf, codediInf, qrank_iInf]
+    simp only [reindex_iInf, iInfAlong, qrank_iInf]
     rw [lift_iSup_ord, lift_iSup_ord]
     apply le_antisymm
     · refine Ordinal.iSup_le fun k ↦ ?_

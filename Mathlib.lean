@@ -5221,7 +5221,9 @@ public import Mathlib.ModelTheory.Equivalence
 public import Mathlib.ModelTheory.FinitelyGenerated
 public import Mathlib.ModelTheory.Fraisse
 public import Mathlib.ModelTheory.Graph
+public import Mathlib.ModelTheory.Infinitary.Countability
 public import Mathlib.ModelTheory.Infinitary.IndexCoding
+public import Mathlib.ModelTheory.Infinitary.LanguageMap
 public import Mathlib.ModelTheory.Infinitary.QuantifierRank
 public import Mathlib.ModelTheory.Infinitary.Semantics
 public import Mathlib.ModelTheory.Infinitary.Syntax
