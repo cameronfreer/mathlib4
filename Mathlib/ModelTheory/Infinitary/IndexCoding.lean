@@ -6,23 +6,31 @@ Authors: Cameron Freer
 module
 
 public import Mathlib.Logic.Encodable.Basic
+public import Mathlib.Logic.Embedding.Basic
 
 /-!
 # Index codings
 
-An `IndexCoding ι κ` is an injection of `ι` into `κ` together with an explicit partial inverse.
-Infinitary formulas (`FirstOrder.Language.BoundedFormulaInf`) fix one branching carrier per
-formula; codings are how an `ι`-indexed infinitary connective is expressed at a larger carrier
-`κ`, and how whole formulas are transported between carriers (`reindex`).
+An `IndexCoding ι κ` is an injection of `ι` into `κ` together with a decoder that is a left
+inverse on encoded values. Infinitary formulas (`FirstOrder.Language.BoundedFormulaInf`) fix
+one branching carrier per formula; codings are how an `ι`-indexed infinitary connective is
+expressed at a larger carrier `κ`, and how whole formulas are transported between carriers
+(`reindex`).
 
 The `pad` operation extends an `ι`-indexed family to a `κ`-indexed one, sending indices that do
 not decode to a given default value. For conjunctions the default is `⊤`, for disjunctions `⊥`,
-which makes the padding semantically neutral.
+which makes the padding semantically neutral. The laws `pad_trans` and `comp_pad` are the
+reusable engine for transport coherence: consumers chain and commute pads through them rather
+than re-analyzing the decoder.
 
 ## Main definitions
 
-- `IndexCoding`: an encode/decode pair with `decode_encode`.
-- `IndexCoding.id`, `IndexCoding.comp`: identity and composition.
+- `IndexCoding`: an encode/decode pair with `decode_encode`. The decoder is only required to be
+  a left inverse on encoded values — extra target values may decode to duplicate source
+  branches. This mirrors `Encodable` (the codomain-`ℕ` special case) and is all the semantics
+  needs.
+- `IndexCoding.id`, `IndexCoding.trans`: identity and (forward) composition, with the usual
+  laws `id_trans`, `trans_id`, `trans_assoc`.
 - `IndexCoding.sumInl`, `IndexCoding.sumInr`: the canonical codings into a sum. These are what
   Karp's theorem uses: at the carrier `M ⊕ N`, both `M`-indexed and `N`-indexed conjunctions are
   available in a single formula type.
@@ -32,22 +40,28 @@ which makes the padding semantically neutral.
 - `IndexCoding.ofEquiv`: the coding induced by an equivalence of carriers, whose `decode` is
   total. Reindexing along it is genuine syntactic transport (e.g. `ULift` universe
   adjustment), with a syntactic round trip.
-- `IndexCoding.pad`: total extension of a family along a coding.
+- `IndexCoding.pad`: total extension of a family along a coding, with the coherence laws
+  `pad_trans` and `comp_pad`.
+- `IndexCoding.toEmbedding`: the underlying embedding; `decode_encode` already forces `encode`
+  to be injective.
 -/
 
 @[expose] public section
 
-universe uι uκ uμ
+universe uι uκ uμ uν
 
 namespace FirstOrder
 
-variable {ι : Type uι} {κ : Type uκ} {μ : Type uμ}
+variable {ι : Type uι} {κ : Type uκ} {μ : Type uμ} {ν : Type uν}
 
-/-- A coding of the index type `ι` into `κ`: an injection with an explicit partial inverse. -/
+/-- A coding of the index type `ι` into `κ`: an injection `encode` together with a decoder
+that is a left inverse on encoded values. Values outside the range of `encode` may decode to
+`none` or to duplicate source branches; the padding semantics only ever relies on
+`decode_encode`. -/
 structure IndexCoding (ι : Type uι) (κ : Type uκ) where
   /-- The injection. -/
   encode : ι → κ
-  /-- The partial inverse. -/
+  /-- The decoder, a left inverse on encoded values. -/
   decode : κ → Option ι
   /-- Decoding recovers every encoded index. -/
   decode_encode : ∀ i, decode (encode i) = some i
@@ -65,15 +79,40 @@ theorem ext {c₁ c₂ : IndexCoding ι κ} (he : c₁.encode = c₂.encode)
   cases hd
   rfl
 
+/-- `encode` is injective: `decode_encode` already provides a retraction. -/
+theorem encode_injective (c : IndexCoding ι κ) : Function.Injective c.encode := fun i j h ↦
+  Option.some_injective ι (by rw [← c.decode_encode i, h, c.decode_encode])
+
+/-- The underlying embedding of a coding. -/
+def toEmbedding (c : IndexCoding ι κ) : ι ↪ κ :=
+  ⟨c.encode, c.encode_injective⟩
+
 /-- The identity coding. -/
 protected def id (ι : Type uι) : IndexCoding ι ι :=
   ⟨fun i ↦ i, some, fun _ ↦ rfl⟩
 
-/-- Composition of codings. -/
-def comp (c₂ : IndexCoding κ μ) (c₁ : IndexCoding ι κ) : IndexCoding ι μ where
+/-- Forward composition of codings, in the `Equiv.trans` argument order: first `c₁ : ι → κ`,
+then `c₂ : κ → μ`. -/
+def trans (c₁ : IndexCoding ι κ) (c₂ : IndexCoding κ μ) : IndexCoding ι μ where
   encode := c₂.encode ∘ c₁.encode
   decode m := (c₂.decode m).bind c₁.decode
   decode_encode i := by simp [Function.comp, c₂.decode_encode, c₁.decode_encode]
+
+@[simp]
+theorem id_trans (c : IndexCoding ι κ) : (IndexCoding.id ι).trans c = c := by
+  refine ext rfl (funext fun k ↦ ?_)
+  simp only [trans, IndexCoding.id]
+  rcases c.decode k with _ | i <;> rfl
+
+@[simp]
+theorem trans_id (c : IndexCoding ι κ) : c.trans (IndexCoding.id κ) = c :=
+  rfl
+
+theorem trans_assoc (c₁ : IndexCoding ι κ) (c₂ : IndexCoding κ μ) (c₃ : IndexCoding μ ν) :
+    (c₁.trans c₂).trans c₃ = c₁.trans (c₂.trans c₃) := by
+  refine ext rfl (funext fun m ↦ ?_)
+  simp only [trans]
+  rcases c₃.decode m with _ | k <;> rfl
 
 /-- The canonical coding of the left summand into a sum. -/
 def sumInl (ι : Type uι) (κ : Type uκ) : IndexCoding ι (ι ⊕ κ) :=
@@ -95,12 +134,22 @@ preserves semantics but pads. -/
 def ofEquiv (e : ι ≃ κ) : IndexCoding ι κ :=
   ⟨e, fun k ↦ some (e.symm k), fun i ↦ by simp⟩
 
+@[simp]
+theorem ofEquiv_refl : ofEquiv (Equiv.refl ι) = IndexCoding.id ι := by
+  refine ext rfl (funext fun i ↦ ?_)
+  simp [ofEquiv, IndexCoding.id]
+
+/-- `ofEquiv` turns equivalence composition into coding composition. -/
+theorem ofEquiv_trans (e₁ : ι ≃ κ) (e₂ : κ ≃ μ) :
+    ofEquiv (e₁.trans e₂) = (ofEquiv e₁).trans (ofEquiv e₂) := by
+  refine ext rfl (funext fun m ↦ ?_)
+  simp [ofEquiv, trans]
+
 /-- The two codings of an equivalence compose to the identity coding. -/
 @[simp]
-theorem ofEquiv_symm_comp (e : ι ≃ κ) :
-    (ofEquiv e.symm).comp (ofEquiv e) = IndexCoding.id ι := by
-  refine ext (funext fun i ↦ ?_) (funext fun i ↦ ?_) <;>
-    simp [comp, ofEquiv, IndexCoding.id]
+theorem ofEquiv_trans_ofEquiv_symm (e : ι ≃ κ) :
+    (ofEquiv e).trans (ofEquiv e.symm) = IndexCoding.id ι := by
+  rw [← ofEquiv_trans, Equiv.self_trans_symm, ofEquiv_refl]
 
 /-- Total extension of a family along a coding: decoded indices select a branch, undecodable
 ones get the default. -/
@@ -123,6 +172,21 @@ theorem pad_of_decode_some {β : Sort*} (c : IndexCoding ι κ) {default : β} {
 @[simp]
 theorem id_pad {β : Sort*} (default : β) (f : ι → β) : (IndexCoding.id ι).pad default f = f :=
   rfl
+
+/-- Padding along a composite coding is iterated padding: the decode analysis for a chain of
+codings happens HERE, once, not at every consumer. -/
+theorem pad_trans {β : Sort*} (c₁ : IndexCoding ι κ) (c₂ : IndexCoding κ μ) (default : β)
+    (f : ι → β) : (c₁.trans c₂).pad default f = c₂.pad default (c₁.pad default f) := by
+  funext m
+  simp only [pad, trans]
+  rcases c₂.decode m with _ | k <;> rfl
+
+/-- Mapping commutes with padding: the other half of the transport-coherence engine. -/
+theorem comp_pad {β γ : Sort*} (c : IndexCoding ι κ) (g : β → γ) (default : β) (f : ι → β) :
+    g ∘ c.pad default f = c.pad (g default) (g ∘ f) := by
+  funext k
+  simp only [Function.comp_apply, pad]
+  rcases c.decode k with _ | i <;> rfl
 
 end IndexCoding
 

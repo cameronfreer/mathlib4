@@ -54,7 +54,8 @@ theorem onBoundedFormulaInf_bot (g : L →ᴸ L') :
   rfl
 
 /-- Language maps commute with carrier transport: transforming the formula at carrier `ι` and
-then reindexing to `κ` is the same as reindexing first and transforming at `κ`. -/
+then reindexing to `κ` is the same as reindexing first and transforming at `κ`. Proved from
+the generic pad law `IndexCoding.comp_pad`, with no decoder analysis. -/
 theorem onBoundedFormulaInf_reindex (g : L →ᴸ L') (c : IndexCoding ι κ) :
     ∀ {n} (φ : L.BoundedFormulaInf ι α n),
       g.onBoundedFormulaInf (reindex c φ) = reindex c (g.onBoundedFormulaInf φ) := by
@@ -68,19 +69,23 @@ theorem onBoundedFormulaInf_reindex (g : L →ᴸ L') (c : IndexCoding ι κ) :
   | all φ ih =>
     simp only [onBoundedFormulaInf, reindex_all, ih]
   | iSup φs ih =>
-    refine congrArg BoundedFormulaInf.iSup (funext fun k ↦ ?_)
-    change g.onBoundedFormulaInf (c.pad ⊥ _ k) = c.pad ⊥ _ k
-    rcases hd : c.decode k with _ | i
-    · simp only [c.pad_of_decode_none hd, onBoundedFormulaInf_bot]
-    · simp only [c.pad_of_decode_some hd]
-      exact ih i
+    have h : (g.onBoundedFormulaInf ∘ c.pad ⊥ fun i ↦ reindex c (φs i)) =
+        c.pad ⊥ fun i ↦ reindex c (g.onBoundedFormulaInf (φs i)) :=
+      calc (g.onBoundedFormulaInf ∘ c.pad ⊥ fun i ↦ reindex c (φs i))
+          = c.pad ⊥ (g.onBoundedFormulaInf ∘ fun i ↦ reindex c (φs i)) := by
+            rw [IndexCoding.comp_pad, onBoundedFormulaInf_bot]
+        _ = c.pad ⊥ fun i ↦ reindex c (g.onBoundedFormulaInf (φs i)) :=
+            congrArg _ (funext fun i ↦ ih i)
+    exact congrArg BoundedFormulaInf.iSup h
   | iInf φs ih =>
-    refine congrArg BoundedFormulaInf.iInf (funext fun k ↦ ?_)
-    change g.onBoundedFormulaInf (c.pad ⊤ _ k) = c.pad ⊤ _ k
-    rcases hd : c.decode k with _ | i
-    · simp only [c.pad_of_decode_none hd, onBoundedFormulaInf_top]
-    · simp only [c.pad_of_decode_some hd]
-      exact ih i
+    have h : (g.onBoundedFormulaInf ∘ c.pad ⊤ fun i ↦ reindex c (φs i)) =
+        c.pad ⊤ fun i ↦ reindex c (g.onBoundedFormulaInf (φs i)) :=
+      calc (g.onBoundedFormulaInf ∘ c.pad ⊤ fun i ↦ reindex c (φs i))
+          = c.pad ⊤ (g.onBoundedFormulaInf ∘ fun i ↦ reindex c (φs i)) := by
+            rw [IndexCoding.comp_pad, onBoundedFormulaInf_top]
+        _ = c.pad ⊤ fun i ↦ reindex c (g.onBoundedFormulaInf (φs i)) :=
+            congrArg _ (funext fun i ↦ ih i)
+    exact congrArg BoundedFormulaInf.iInf h
 
 end
 

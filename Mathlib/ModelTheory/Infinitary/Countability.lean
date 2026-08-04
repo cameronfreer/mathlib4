@@ -317,12 +317,19 @@ theorem realize_ofCountable {φ : L.BoundedFormulaInf ι α n} (h : φ.IsCountab
     simp only [ofCountable, realize_iInfAlong, realize_iInf]
     exact forall_congr' fun i ↦ ih i
 
-/-- Encoding independence: different `IsCountable` proofs may choose different encodings and
-so produce syntactically different `L_{ω₁ω}` formulas, but their realizations agree. -/
+/-- The conversion does not depend on the proof: `IsCountable` is a proposition, so any two
+proofs are propositionally equal and the results are too. Different proofs need not *compute*
+to the same term (each infinitary node consults the proof for its encoding), but proof
+irrelevance makes their results equal. -/
+theorem ofCountable_proof_irrel {φ : L.BoundedFormulaInf ι α n} (h₁ h₂ : φ.IsCountable) :
+    ofCountable h₁ = ofCountable h₂ := by
+  rw [Subsingleton.elim h₁ h₂]
+
+/-- Semantic corollary of `ofCountable_proof_irrel`. -/
 theorem realize_ofCountable_congr {φ : L.BoundedFormulaInf ι α n}
     (h₁ h₂ : φ.IsCountable) :
-    (ofCountable h₁).Realize v xs ↔ (ofCountable h₂).Realize v xs :=
-  (realize_ofCountable h₁).trans (realize_ofCountable h₂).symm
+    (ofCountable h₁).Realize v xs ↔ (ofCountable h₂).Realize v xs := by
+  rw [ofCountable_proof_irrel h₁ h₂]
 
 end
 

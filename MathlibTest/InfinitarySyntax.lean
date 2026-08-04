@@ -23,7 +23,11 @@ ONE branching carrier `ι` per formula (rather than quantifying over a fresh ind
    carriers with no carrier assumption, and the proof-directed `ofCountable` converts it to
    `BoundedFormulaω` with realization preserved;
 8. equivalence codings round-trip syntactically — `reindex` genuinely replaces a `ULift`
-   universe-lift operation, with an exact syntactic inverse.
+   universe-lift operation, with an exact syntactic inverse;
+9. the migration compatibility surface — seven qualified `BoundedFormulaω.*` constructor
+   aliases suffice for source-level compatibility with code written against a dedicated
+   `L_{ω₁ω}` inductive: they unfold by `rfl`, coexist with dot-notation, and no specialized
+   recursor is needed.
 -/
 
 universe u v u' uι w
@@ -241,5 +245,82 @@ example {ι : Type uι} (φ : L.BoundedFormulaInf ι α n) :
   reindex_ofEquiv_symm_reindex_ofEquiv _ φ
 
 end EquivRoundTrip
+
+/-! ## 9. The `BoundedFormulaω` compatibility surface
+
+Existing downstream code (76 files in the `infinitary-logic` repository) refers to qualified
+constructor names such as `BoundedFormulaω.iInf`. This section checks that a seven-alias
+compatibility namespace fully restores that surface over the abbreviation — and that no
+generated-recursor compatibility (`rec`/`casesOn`) is needed, since induction and pattern
+matching already work through the abbreviation (probed in section 6). -/
+
+section OmegaCompat
+
+variable {L : Language.{u, v}} {α : Type u'} {n : ℕ}
+
+namespace BoundedFormulaω
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev falsum : L.BoundedFormulaω α n :=
+  BoundedFormulaInf.falsum
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev equal (t₁ t₂ : L.Term (α ⊕ Fin n)) : L.BoundedFormulaω α n :=
+  BoundedFormulaInf.equal t₁ t₂
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev rel {l : ℕ} (R : L.Relations l) (ts : Fin l → L.Term (α ⊕ Fin n)) :
+    L.BoundedFormulaω α n :=
+  BoundedFormulaInf.rel R ts
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev imp (φ ψ : L.BoundedFormulaω α n) : L.BoundedFormulaω α n :=
+  BoundedFormulaInf.imp φ ψ
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev all (φ : L.BoundedFormulaω α (n + 1)) : L.BoundedFormulaω α n :=
+  BoundedFormulaInf.all φ
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev iSup (φs : ℕ → L.BoundedFormulaω α n) : L.BoundedFormulaω α n :=
+  BoundedFormulaInf.iSup φs
+
+/-- Compatibility alias for the qualified constructor name. -/
+protected abbrev iInf (φs : ℕ → L.BoundedFormulaω α n) : L.BoundedFormulaω α n :=
+  BoundedFormulaInf.iInf φs
+
+end BoundedFormulaω
+
+/-- Representative downstream expressions compile against the aliases. -/
+example (R : L.Relations 2) (ts : Fin 2 → L.Term (α ⊕ Fin n)) :
+    L.BoundedFormulaω α n :=
+  BoundedFormulaω.iInf fun _ ↦ BoundedFormulaω.imp (BoundedFormulaω.rel R ts)
+    BoundedFormulaω.falsum
+
+example (φ : L.BoundedFormulaω α (n + 1)) : L.BoundedFormulaω α n :=
+  BoundedFormulaω.all φ
+
+/-- The aliases unfold to the underlying constructors by `rfl`. -/
+example (φs : ℕ → L.BoundedFormulaω α n) :
+    BoundedFormulaω.iInf φs = BoundedFormulaInf.iInf φs :=
+  rfl
+
+example : (BoundedFormulaω.falsum : L.BoundedFormulaω α n) = BoundedFormulaInf.falsum :=
+  rfl
+
+/-- Dot-notation still elaborates alongside the aliases. -/
+example (φs : ℕ → L.BoundedFormulaω α 0) : L.BoundedFormulaω α 0 :=
+  .iInf φs
+
+/-- Induction on an alias-built formula still exposes the seven underlying cases; no
+specialized recursor is required. -/
+example {M : Type w} [L.Structure M] (φs : ℕ → L.BoundedFormulaω α n)
+    (v : α → M) (xs : Fin n → M) :
+    (BoundedFormulaω.iInf φs).Realize v xs ↔ ∀ i, (φs i).Realize v xs := by
+  induction h : BoundedFormulaω.iInf φs with
+  | iInf φs' ih => simp_all [BoundedFormulaInf.realize_iInf]
+  | falsum | equal | rel | imp | all | iSup => simp_all
+
+end OmegaCompat
 
 end FirstOrder.Language
