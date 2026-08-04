@@ -22,7 +22,7 @@ which makes the padding semantically neutral.
 ## Main definitions
 
 - `IndexCoding`: an encode/decode pair with `decode_encode`.
-- `IndexCoding.id`, `IndexCoding.comp`: the category structure.
+- `IndexCoding.id`, `IndexCoding.comp`: identity and composition.
 - `IndexCoding.sumInl`, `IndexCoding.sumInr`: the canonical codings into a sum. These are what
   Karp's theorem uses: at the carrier `M ⊕ N`, both `M`-indexed and `N`-indexed conjunctions are
   available in a single formula type.
