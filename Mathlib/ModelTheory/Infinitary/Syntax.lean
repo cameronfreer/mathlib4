@@ -255,6 +255,15 @@ theorem reindex_ofEquiv_symm_reindex_ofEquiv (e : ι ≃ κ) (φ : L.BoundedForm
     reindex (.ofEquiv e.symm) (reindex (.ofEquiv e) φ) = φ := by
   rw [← reindex_trans, IndexCoding.ofEquiv_trans_ofEquiv_symm, reindex_id]
 
+/-- Carrier equivalences are actual syntax equivalences. In particular
+`reindexEquiv Equiv.ulift.symm` is the universe-lift operation on formulas, packaged with its
+exact syntactic inverse. -/
+def reindexEquiv (e : ι ≃ κ) : L.BoundedFormulaInf ι α n ≃ L.BoundedFormulaInf κ α n where
+  toFun := reindex (.ofEquiv e)
+  invFun := reindex (.ofEquiv e.symm)
+  left_inv φ := reindex_ofEquiv_symm_reindex_ofEquiv e φ
+  right_inv φ := by simpa using reindex_ofEquiv_symm_reindex_ofEquiv e.symm φ
+
 /-- Recode a formula over an encodable carrier into `L_{ω₁ω}`. No choice is involved; for a
 merely `Countable` carrier, obtain an `Encodable` instance via `Encodable.ofCountable` first.
 This is the uniform, whole-formula conversion; the formula-sensitive conversion from an
