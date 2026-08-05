@@ -122,10 +122,18 @@ def sumInl (ι : Type uι) (κ : Type uκ) : IndexCoding ι (ι ⊕ κ) :=
 def sumInr (ι : Type uι) (κ : Type uκ) : IndexCoding κ (ι ⊕ κ) :=
   ⟨Sum.inr, Sum.getRight?, fun _ ↦ rfl⟩
 
+/-- Explicit-data variant of `ofEncodable`: build the coding from a *given* encoding value
+rather than by instance search. Code that stores a particular `Encodable` as data (e.g. a
+coded-family presentation that must not consult ambient instances) uses this, so the compiler
+enforces that the resulting syntax depends on the stored encoding. -/
+def ofEncodableWith (e : Encodable ι) : IndexCoding ι ℕ :=
+  letI := e
+  ⟨Encodable.encode, Encodable.decode, Encodable.encodek⟩
+
 /-- The canonical coding of an encodable type into `ℕ`. No choice is involved; a `Countable`
 carrier can be upgraded noncomputably via `Encodable.ofCountable` at the call site. -/
 def ofEncodable (ι : Type uι) [Encodable ι] : IndexCoding ι ℕ :=
-  ⟨Encodable.encode, Encodable.decode, Encodable.encodek⟩
+  ofEncodableWith inferInstance
 
 /-- The coding induced by an equivalence of carriers. Its `decode` is total, so reindexing
 along it introduces no padding: this is the case of genuine syntactic transport (in

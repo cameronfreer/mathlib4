@@ -33,7 +33,7 @@ demand a bound on `ι` only at the `iSup`/`iInf` nodes a formula actually contai
   formulas at uncountable carriers, where no `Encodable ι` exists.
 -/
 
-universe u v u' uι w
+universe u v u' uι uκ w
 
 namespace FirstOrder
 
@@ -213,6 +213,20 @@ theorem indexBound_iInf {φs : ι → L.BoundedFormulaInf ι α n} :
     (iInf φs).indexBound = Cardinal.mk ι :=
   max_eq_left (ciSup_le' fun i ↦ indexBound_le_mk (φs i))
 
+/-- Every formula at carrier `ι` lies in `L_{κω}` once `κ` exceeds the carrier's
+cardinality. -/
+theorem isKappa_of_mk_lt {κ : Cardinal.{uι}} (hκ : Cardinal.mk ι < κ) :
+    ∀ {n} (φ : L.BoundedFormulaInf ι α n), φ.IsKappa κ := by
+  intro n φ
+  induction φ with
+  | falsum => exact .falsum
+  | equal t₁ t₂ => exact .equal t₁ t₂
+  | rel R ts => exact .rel R ts
+  | imp φ ψ ihφ ihψ => exact .imp ihφ ihψ
+  | all φ ih => exact .all ih
+  | iSup φs ih => exact .iSup hκ ih
+  | iInf φs ih => exact .iInf hκ ih
+
 /-- Every formula belongs to `L_{κω}` for `κ` the successor of its index bound. -/
 theorem isKappa_succ_indexBound (φ : L.BoundedFormulaInf ι α n) :
     IsKappa (Order.succ φ.indexBound) φ := by
@@ -234,6 +248,35 @@ theorem isKappa_succ_indexBound (φ : L.BoundedFormulaInf ι α n) :
 /-- Every `L_{∞ω}` formula belongs to some `L_{κω}`. -/
 theorem exists_isKappa (φ : L.BoundedFormulaInf ι α n) : ∃ κ : Cardinal.{uι}, IsKappa κ φ :=
   ⟨Order.succ φ.indexBound, isKappa_succ_indexBound φ⟩
+
+/-! ### The padding boundary
+
+Padding preserves semantics (`realize_reindex`) and rank (`qrank_reindex`), but **not
+intrinsic syntactic arity**: reindexing a formula with an infinitary node into a larger
+carrier `κ` produces a `κ`-indexed node padded with `⊤`/`⊥`, whose raw `indexBound` sees the
+target carrier and which does not satisfy the structural `IsCountable` when `κ` is
+uncountable — even though it is semantically equivalent to the original. This is the main
+representational cost of fixed carriers, and it is deliberate: `reindex` is semantic/rank
+transport, while `IsKappa`/`IsCountable`/`indexBound` describe the *particular syntactic
+presentation*. There is no minimal-carrier quotient here — that would be a second syntax. -/
+
+section PaddingBoundary
+
+variable {κ : Type uκ}
+
+/-- The reindexed formula lies in `L_{xω}` for any `x` above the TARGET carrier's size — the
+positive side of the padding boundary. -/
+theorem IsKappa.reindex_of_target (c : IndexCoding ι κ) {x : Cardinal.{uκ}}
+    (hx : Cardinal.mk κ < x) (φ : L.BoundedFormulaInf ι α n) :
+    (reindex c φ).IsKappa x :=
+  isKappa_of_mk_lt hx _
+
+/-- The reindexed formula's index bound is controlled by the TARGET carrier. -/
+theorem indexBound_reindex_le (c : IndexCoding ι κ) (φ : L.BoundedFormulaInf ι α n) :
+    (reindex c φ).indexBound ≤ Cardinal.mk κ :=
+  indexBound_le_mk _
+
+end PaddingBoundary
 
 /-! ### The proof-directed conversion to `L_{ω₁ω}` -/
 

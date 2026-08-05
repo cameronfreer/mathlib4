@@ -221,7 +221,44 @@ example {ι : Type uι} (φs : ι → L.BoundedFormulaInf ι α n) :
     (iInf φs).indexBound = Cardinal.mk ι :=
   indexBound_iInf
 
+/-! ### The padding boundary: positive and negative regressions
+
+`reindex` transports semantics and rank, NOT syntactic arity: a formula reindexed into an
+uncountable carrier is semantically equivalent to the original but its syntactic presentation
+sees the target carrier. -/
+
+/-- POSITIVE: the reindexed formula lies in `L_{xω}` for `x` above the target carrier. -/
+example {ι : Type uι} {κ : Type w} (c : IndexCoding ι κ) {x : Cardinal.{w}}
+    (hx : Cardinal.mk κ < x) (φ : L.BoundedFormulaInf ι α n) :
+    (reindex c φ).IsKappa x :=
+  IsKappa.reindex_of_target c hx φ
+
+/-- POSITIVE: the reindexed index bound is controlled by the target carrier. -/
+example {ι : Type uι} {κ : Type w} (c : IndexCoding ι κ) (φ : L.BoundedFormulaInf ι α n) :
+    (reindex c φ).indexBound ≤ Cardinal.mk κ :=
+  indexBound_reindex_le c φ
+
+/-- NEGATIVE: an infinitary node coded into an uncountable carrier is NOT structurally
+countable — `iInfAlong` is not claimed to preserve `IsCountable`, even though the padding is
+semantically neutral. This is the deliberate representational cost of fixed carriers. -/
+example {ι : Type uι} {κ : Type w} [Uncountable κ] (c : IndexCoding ι κ)
+    (φs : ι → L.BoundedFormulaInf κ α n) :
+    ¬(iInfAlong c φs).IsCountable := fun h ↦
+  not_countable h.iInf_countable
+
 end Countability
+
+/-! ### Explicit stored encodings
+
+No `[Encodable ι]` instance is in scope below: the coding consults only the GIVEN value `e`.
+This is the pattern coded-family presentations require — the compiler enforces that the
+syntax depends on the stored encoding, not on ambient instance search. -/
+
+example {L : Language.{u, v}} {α : Type u'} {M : Type w} [L.Structure M] {n : ℕ}
+    {ι : Type uι} (e : Encodable ι) (φs : ι → L.BoundedFormulaω α n)
+    (v : α → M) (xs : Fin n → M) :
+    (iInfAlong (.ofEncodableWith e) φs).Realize v xs ↔ ∀ i, (φs i).Realize v xs :=
+  realize_iInfAlong
 
 /-! ## 8. Equivalence codings: syntactic round trip (the `liftUI` replacement) -/
 
