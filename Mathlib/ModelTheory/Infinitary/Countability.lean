@@ -257,64 +257,52 @@ representational cost of fixed carriers, and it is deliberate: `reindex` is sema
 transport, while `IsKappa`/`IsCountable`/`indexBound` describe the *particular syntactic
 presentation*. There is no minimal-carrier quotient here — that would be a second syntax. -/
 
-section PaddingBoundary
 
-variable {κ : Type uκ}
 
-/-- The reindexed formula lies in `L_{xω}` for any `x` above the TARGET carrier's size — the
-positive side of the padding boundary. -/
-theorem IsKappa.reindex_of_target (c : IndexCoding ι κ) {x : Cardinal.{uκ}}
-    (hx : Cardinal.mk κ < x) (φ : L.BoundedFormulaInf ι α n) :
-    (reindex c φ).IsKappa x :=
-  isKappa_of_mk_lt hx _
+end
 
-/-- The reindexed formula's index bound is controlled by the TARGET carrier. -/
-theorem indexBound_reindex_le (c : IndexCoding ι κ) (φ : L.BoundedFormulaInf ι α n) :
-    (reindex c φ).indexBound ≤ Cardinal.mk κ :=
-  indexBound_le_mk _
+/-! ### The proof-directed conversion to `L_{ω₁ω}`
 
-end PaddingBoundary
+`ofCountable` is deliberately NOT `@[expose]`d: its inversion lemmas are module-private and
+its consumers work through `realize_ofCountable` and `ofCountable_proof_irrel`, never by
+definitional unfolding. -/
 
-/-! ### The proof-directed conversion to `L_{ω₁ω}` -/
+public section
 
-namespace IsCountable
-
-theorem imp_left {φ ψ : L.BoundedFormulaInf ι α n} (h : (φ.imp ψ).IsCountable) :
-    φ.IsCountable := by
+private theorem isCountable_imp_left {φ ψ : L.BoundedFormulaInf ι α n}
+    (h : (φ.imp ψ).IsCountable) : φ.IsCountable := by
   cases h with
   | imp hφ _ => exact hφ
 
-theorem imp_right {φ ψ : L.BoundedFormulaInf ι α n} (h : (φ.imp ψ).IsCountable) :
-    ψ.IsCountable := by
+private theorem isCountable_imp_right {φ ψ : L.BoundedFormulaInf ι α n}
+    (h : (φ.imp ψ).IsCountable) : ψ.IsCountable := by
   cases h with
   | imp _ hψ => exact hψ
 
-theorem all_inner {φ : L.BoundedFormulaInf ι α (n + 1)} (h : φ.all.IsCountable) :
-    φ.IsCountable := by
+private theorem isCountable_all_inner {φ : L.BoundedFormulaInf ι α (n + 1)}
+    (h : φ.all.IsCountable) : φ.IsCountable := by
   cases h with
   | all hφ => exact hφ
 
-theorem iSup_countable {φs : ι → L.BoundedFormulaInf ι α n}
+private theorem isCountable_iSup_countable {φs : ι → L.BoundedFormulaInf ι α n}
     (h : (BoundedFormulaInf.iSup φs).IsCountable) : Countable ι := by
   cases h with
   | iSup hc _ => exact hc
 
-theorem iSup_forall {φs : ι → L.BoundedFormulaInf ι α n}
+private theorem isCountable_iSup_forall {φs : ι → L.BoundedFormulaInf ι α n}
     (h : (BoundedFormulaInf.iSup φs).IsCountable) : ∀ i, (φs i).IsCountable := by
   cases h with
   | iSup _ hφs => exact hφs
 
-theorem iInf_countable {φs : ι → L.BoundedFormulaInf ι α n}
+private theorem isCountable_iInf_countable {φs : ι → L.BoundedFormulaInf ι α n}
     (h : (BoundedFormulaInf.iInf φs).IsCountable) : Countable ι := by
   cases h with
   | iInf hc _ => exact hc
 
-theorem iInf_forall {φs : ι → L.BoundedFormulaInf ι α n}
+private theorem isCountable_iInf_forall {φs : ι → L.BoundedFormulaInf ι α n}
     (h : (BoundedFormulaInf.iInf φs).IsCountable) : ∀ i, (φs i).IsCountable := by
   cases h with
   | iInf _ hφs => exact hφs
-
-end IsCountable
 
 /-- The proof-directed conversion of a countable formula to `L_{ω₁ω}`. Recurses on the
 formula, extracting `Countable ι` from the proof — and hence choosing an encoding — only when
@@ -325,16 +313,17 @@ noncomputable def ofCountable :
   | _, .falsum, _ => .falsum
   | _, .equal t₁ t₂, _ => .equal t₁ t₂
   | _, .rel R ts, _ => .rel R ts
-  | _, .imp _ _, h => (ofCountable h.imp_left).imp (ofCountable h.imp_right)
-  | _, .all _, h => (ofCountable h.all_inner).all
+  | _, .imp _ _, h =>
+    (ofCountable (isCountable_imp_left h)).imp (ofCountable (isCountable_imp_right h))
+  | _, .all _, h => (ofCountable (isCountable_all_inner h)).all
   | _, .iSup _, h =>
-    haveI : Countable ι := h.iSup_countable
+    haveI : Countable ι := isCountable_iSup_countable h
     haveI : Encodable ι := Encodable.ofCountable ι
-    iSupAlong (.ofEncodable ι) fun i ↦ ofCountable (h.iSup_forall i)
+    iSupAlong (.ofEncodable ι) fun i ↦ ofCountable (isCountable_iSup_forall h i)
   | _, .iInf _, h =>
-    haveI : Countable ι := h.iInf_countable
+    haveI : Countable ι := isCountable_iInf_countable h
     haveI : Encodable ι := Encodable.ofCountable ι
-    iInfAlong (.ofEncodable ι) fun i ↦ ofCountable (h.iInf_forall i)
+    iInfAlong (.ofEncodable ι) fun i ↦ ofCountable (isCountable_iInf_forall h i)
 
 variable {M : Type w} [L.Structure M] {v : α → M} {xs : Fin n → M}
 
@@ -364,12 +353,6 @@ irrelevance makes their results equal. -/
 theorem ofCountable_proof_irrel {φ : L.BoundedFormulaInf ι α n} (h₁ h₂ : φ.IsCountable) :
     ofCountable h₁ = ofCountable h₂ := by
   rw [Subsingleton.elim h₁ h₂]
-
-/-- Semantic corollary of `ofCountable_proof_irrel`. -/
-theorem realize_ofCountable_congr {φ : L.BoundedFormulaInf ι α n}
-    (h₁ h₂ : φ.IsCountable) :
-    (ofCountable h₁).Realize v xs ↔ (ofCountable h₂).Realize v xs := by
-  rw [ofCountable_proof_irrel h₁ h₂]
 
 end
 

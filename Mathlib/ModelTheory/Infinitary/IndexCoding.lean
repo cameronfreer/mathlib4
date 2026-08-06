@@ -11,39 +11,23 @@ public import Mathlib.Logic.Embedding.Basic
 /-!
 # Index codings
 
-An `IndexCoding ι κ` is an injection of `ι` into `κ` together with a decoder that is a left
-inverse on encoded values. Infinitary formulas (`FirstOrder.Language.BoundedFormulaInf`) fix
-one branching carrier per formula; codings are how an `ι`-indexed infinitary connective is
-expressed at a larger carrier `κ`, and how whole formulas are transported between carriers
-(`reindex`).
-
-The `pad` operation extends an `ι`-indexed family to a `κ`-indexed one, sending indices that do
-not decode to a given default value. For conjunctions the default is `⊤`, for disjunctions `⊥`,
-which makes the padding semantically neutral. The laws `pad_trans` and `comp_pad` are the
-reusable engine for transport coherence: consumers chain and commute pads through them rather
-than re-analyzing the decoder.
+An `IndexCoding ι κ` is an injection `encode : ι → κ` together with a decoder that is a left
+inverse on encoded values (mirroring `Encodable`, the codomain-`ℕ` special case). Codings are
+how an `ι`-indexed infinitary connective is expressed at a larger carrier `κ`, and how
+infinitary formulas are transported between carriers (`Infinitary/Reindex.lean`).
 
 ## Main definitions
 
-- `IndexCoding`: an encode/decode pair with `decode_encode`. The decoder is only required to be
-  a left inverse on encoded values — extra target values may decode to duplicate source
-  branches. This mirrors `Encodable` (the codomain-`ℕ` special case) and is all the semantics
-  needs.
-- `IndexCoding.id`, `IndexCoding.trans`: identity and (forward) composition, with the usual
-  laws `id_trans`, `trans_id`, `trans_assoc`.
-- `IndexCoding.sumInl`, `IndexCoding.sumInr`: the canonical codings into a sum. These are what
-  Karp's theorem uses: at the carrier `M ⊕ N`, both `M`-indexed and `N`-indexed conjunctions are
-  available in a single formula type.
-- `IndexCoding.ofEncodable`: the coding of an encodable type into `ℕ`, which recovers `L_{ω₁ω}`
-  from a countable-carrier `L_{∞ω}` formula. This is deliberately stated for `Encodable`, not
-  `Countable`: the coding itself involves no choice.
-- `IndexCoding.ofEquiv`: the coding induced by an equivalence of carriers, whose `decode` is
-  total. Reindexing along it is genuine syntactic transport (e.g. `ULift` universe
-  adjustment), with a syntactic round trip.
-- `IndexCoding.pad`: total extension of a family along a coding, with the coherence laws
-  `pad_trans` and `comp_pad`.
-- `IndexCoding.toEmbedding`: the underlying embedding; `decode_encode` already forces `encode`
-  to be injective.
+- `IndexCoding.id`, `IndexCoding.trans`: identity and forward composition, with `id_trans`,
+  `trans_id`, `trans_assoc`.
+- `IndexCoding.sumInl`, `IndexCoding.sumInr`: the canonical codings into a sum.
+- `IndexCoding.ofEncodable` / `ofEncodableWith`: the coding of an encodable type into `ℕ`,
+  by instance search or from an explicitly given `Encodable` value; no choice is involved.
+- `IndexCoding.ofEquiv`: the coding induced by an equivalence; its `decode` is total.
+- `IndexCoding.pad`: total extension of an `ι`-indexed family to a `κ`-indexed one, sending
+  undecodable indices to a default. The laws `pad_trans` and `comp_pad` centralize all
+  decoder analysis; consumers chain and commute pads through them.
+- `IndexCoding.toEmbedding`: the underlying embedding (`decode_encode` forces injectivity).
 -/
 
 @[expose] public section
