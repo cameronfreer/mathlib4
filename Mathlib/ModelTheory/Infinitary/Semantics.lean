@@ -29,8 +29,8 @@ separate `L_{ω₁ω}` semantics, and no universe-specialized lemma set.
 - `BoundedFormula.realize_toInf`: the carrier-generic finitary embedding preserves
   realization.
 
-Realization of the coded connectives and of carrier transport arrives with the follow-up
-transport layer.
+Realization of the coded connectives and of carrier transport is in
+`Infinitary/Reindex.lean`.
 -/
 
 @[expose] public section

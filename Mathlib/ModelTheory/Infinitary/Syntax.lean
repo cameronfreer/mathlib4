@@ -24,9 +24,9 @@ quantifying over a fresh index type at every node. Consequences:
   `BoundedFormulaω L α n := BoundedFormulaInf L ℕ α n` has exactly the universe
   `Type (max u v u')` of the finitary `BoundedFormula`.
 - An `ι`-indexed conjunction at a larger carrier `κ`, and transport of whole formulas
-  between carriers, are expressed through codings, arriving with the follow-up transport
-  layer. In particular, Karp's theorem, the consumer that forces arbitrary index types, needs
-  only the single carrier `M ⊕ N`.
+  between carriers, are expressed through codings — see `Infinitary/Reindex.lean`. In
+  particular, Karp's theorem, the consumer that forces arbitrary index types, needs only the
+  single carrier `M ⊕ N`.
 
 ## Main definitions
 
