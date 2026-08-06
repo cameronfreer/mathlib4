@@ -161,14 +161,7 @@ example {L : Language.{u, v}} {α : Type u'}
 example {L : Language.{u, v}} {α : Type u'} {M : Type w} [L.Structure M] {k : ℕ}
     (φ : L.BoundedFormulaω α k) (v : α → M) (xs : Fin k → M) :
     φ.Realize v xs ∨ ¬φ.Realize v xs := by
-  induction φ with
-  | falsum => exact Or.inr (by simp)
-  | equal => exact Classical.em _
-  | rel => exact Classical.em _
-  | imp => exact Classical.em _
-  | all => exact Classical.em _
-  | iSup φs ih => exact Classical.em _
-  | iInf φs ih => exact Classical.em _
+  induction φ <;> exact Classical.em _
 
 /-- Constructor dot-notation elaborates at the `ℕ` specialization. -/
 example {L : Language.{u, v}} {α : Type u'} (φs : ℕ → L.BoundedFormulaω α 0) :

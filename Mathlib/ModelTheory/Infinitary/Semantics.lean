@@ -128,17 +128,15 @@ theorem realize_toInf {M : Type w} [L.Structure M] :
       (toInf (ι := ι) φ).Realize v xs ↔ φ.Realize v xs := by
   intro n φ
   induction φ with
-  | falsum => intro v xs; exact Iff.rfl
-  | equal t₁ t₂ => intro v xs; exact Iff.rfl
-  | rel R ts => intro v xs; exact Iff.rfl
+  | falsum | equal | rel => intro v xs; exact Iff.rfl
   | imp φ ψ ihφ ihψ =>
     intro v xs
-    simp only [toInf, BoundedFormulaInf.realize_imp, BoundedFormula.realize_imp]
-    exact imp_congr (ihφ v xs) (ihψ v xs)
+    simpa only [toInf, BoundedFormulaInf.realize_imp, BoundedFormula.realize_imp] using
+      imp_congr (ihφ v xs) (ihψ v xs)
   | all φ ih =>
     intro v xs
-    simp only [toInf, BoundedFormulaInf.realize_all, BoundedFormula.realize_all]
-    exact forall_congr' fun y ↦ ih v (Fin.snoc xs y)
+    simpa only [toInf, BoundedFormulaInf.realize_all, BoundedFormula.realize_all] using
+      forall_congr' fun y ↦ ih v (Fin.snoc xs y)
 
 end BoundedFormula
 
@@ -167,8 +165,7 @@ theorem BoundedFormulaInf.realize_exs {φ : L.BoundedFormulaInf ι α n} {v : α
   | succ n ih =>
     simp only [BoundedFormulaInf.exs, ih, BoundedFormulaInf.realize_ex]
     constructor
-    · rintro ⟨xs, x, h⟩
-      exact ⟨_, h⟩
+    · rintro ⟨xs, x, h⟩; exact ⟨_, h⟩
     · rintro ⟨xs, h⟩
       exact ⟨Fin.init xs, xs (Fin.last n), by rwa [Fin.snoc_init_self]⟩
 
