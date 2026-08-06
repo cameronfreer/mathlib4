@@ -127,13 +127,11 @@ end ReindexEqs
 theorem reindex_id : ∀ {n} (φ : L.BoundedFormulaInf ι α n), reindex (.id ι) φ = φ := by
   intro n φ
   induction φ with
-  | falsum => rfl
-  | equal t₁ t₂ => rfl
-  | rel R ts => rfl
+  | falsum | equal | rel => rfl
   | imp φ ψ ihφ ihψ => rw [reindex_imp, ihφ, ihψ]
   | all φ ih => rw [reindex_all, ih]
-  | iSup φs ih => exact congrArg BoundedFormulaInf.iSup (funext fun i ↦ ih i)
-  | iInf φs ih => exact congrArg BoundedFormulaInf.iInf (funext fun i ↦ ih i)
+  | iSup φs ih => exact congrArg BoundedFormulaInf.iSup (funext ih)
+  | iInf φs ih => exact congrArg BoundedFormulaInf.iInf (funext ih)
 
 /-- The universal bound-variable closure commutes with carrier transport, syntactically. -/
 @[simp]
@@ -141,9 +139,8 @@ theorem reindex_alls (c : IndexCoding ι κ) :
     ∀ {n} (φ : L.BoundedFormulaInf ι α n), reindex c φ.alls = (reindex c φ).alls
   | 0, _ => rfl
   | _ + 1, φ => by
-    rw [show (φ.alls : L.FormulaInf ι α) = φ.all.alls from rfl, reindex_alls c φ.all,
-      reindex_all]
-    rfl
+    change reindex c φ.all.alls = (reindex c φ).all.alls
+    rw [reindex_alls, reindex_all]
 
 /-- The existential bound-variable closure commutes with carrier transport, syntactically. -/
 @[simp]
@@ -151,8 +148,8 @@ theorem reindex_exs (c : IndexCoding ι κ) :
     ∀ {n} (φ : L.BoundedFormulaInf ι α n), reindex c φ.exs = (reindex c φ).exs
   | 0, _ => rfl
   | _ + 1, φ => by
-    rw [show (φ.exs : L.FormulaInf ι α) = φ.ex.exs from rfl, reindex_exs c φ.ex, reindex_ex]
-    rfl
+    change reindex c φ.ex.exs = (reindex c φ).ex.exs
+    rw [reindex_exs, reindex_ex]
 
 /-- Reindexing along a composite coding is the composite of the reindexings — syntactically,
 not merely up to semantic equivalence. This is the coherence law that lets carrier transports
@@ -163,33 +160,23 @@ theorem reindex_trans (c₁ : IndexCoding ι κ) (c₂ : IndexCoding κ μ) :
       reindex (c₁.trans c₂) φ = reindex c₂ (reindex c₁ φ) := by
   intro n φ
   induction φ with
-  | falsum => rfl
-  | equal t₁ t₂ => rfl
-  | rel R ts => rfl
+  | falsum | equal | rel => rfl
   | imp φ ψ ihφ ihψ => rw [reindex_imp, reindex_imp, reindex_imp, ihφ, ihψ]
   | all φ ih => rw [reindex_all, reindex_all, reindex_all, ih]
   | iSup φs ih =>
-    have h : ((c₁.trans c₂).pad ⊥ fun i ↦ reindex (c₁.trans c₂) (φs i)) =
-        c₂.pad ⊥ fun k ↦ reindex c₂ (c₁.pad ⊥ (fun i ↦ reindex c₁ (φs i)) k) :=
-      calc ((c₁.trans c₂).pad ⊥ fun i ↦ reindex (c₁.trans c₂) (φs i))
-          = c₂.pad ⊥ (c₁.pad ⊥ (reindex c₂ ∘ fun i ↦ reindex c₁ (φs i))) := by
-            rw [IndexCoding.pad_trans]
-            exact congrArg _ (congrArg _ (funext fun i ↦ ih i))
-        _ = c₂.pad ⊥ (reindex c₂ ∘ c₁.pad ⊥ fun i ↦ reindex c₁ (φs i)) := by
-            rw [IndexCoding.comp_pad, reindex_bot]
-        _ = c₂.pad ⊥ fun k ↦ reindex c₂ (c₁.pad ⊥ (fun i ↦ reindex c₁ (φs i)) k) := rfl
-    exact congrArg BoundedFormulaInf.iSup h
+    simp only [reindex_iSup, iSupAlong, IndexCoding.pad_trans]
+    congr 2
+    rw [show (fun i ↦ reindex (c₁.trans c₂) (φs i)) =
+      reindex c₂ ∘ fun i ↦ reindex c₁ (φs i) from funext ih]
+    simpa only [reindex_bot] using
+      (IndexCoding.comp_pad c₁ (reindex c₂) ⊥ (fun i ↦ reindex c₁ (φs i))).symm
   | iInf φs ih =>
-    have h : ((c₁.trans c₂).pad ⊤ fun i ↦ reindex (c₁.trans c₂) (φs i)) =
-        c₂.pad ⊤ fun k ↦ reindex c₂ (c₁.pad ⊤ (fun i ↦ reindex c₁ (φs i)) k) :=
-      calc ((c₁.trans c₂).pad ⊤ fun i ↦ reindex (c₁.trans c₂) (φs i))
-          = c₂.pad ⊤ (c₁.pad ⊤ (reindex c₂ ∘ fun i ↦ reindex c₁ (φs i))) := by
-            rw [IndexCoding.pad_trans]
-            exact congrArg _ (congrArg _ (funext fun i ↦ ih i))
-        _ = c₂.pad ⊤ (reindex c₂ ∘ c₁.pad ⊤ fun i ↦ reindex c₁ (φs i)) := by
-            rw [IndexCoding.comp_pad, reindex_top]
-        _ = c₂.pad ⊤ fun k ↦ reindex c₂ (c₁.pad ⊤ (fun i ↦ reindex c₁ (φs i)) k) := rfl
-    exact congrArg BoundedFormulaInf.iInf h
+    simp only [reindex_iInf, iInfAlong, IndexCoding.pad_trans]
+    congr 2
+    rw [show (fun i ↦ reindex (c₁.trans c₂) (φs i)) =
+      reindex c₂ ∘ fun i ↦ reindex c₁ (φs i) from funext ih]
+    simpa only [reindex_top] using
+      (IndexCoding.comp_pad c₁ (reindex c₂) ⊤ (fun i ↦ reindex c₁ (φs i))).symm
 
 /-- **Equivalence codings give genuine syntactic transport**: reindexing along an equivalence
 and back is the identity, syntactically. Instantiated at `Equiv.ulift`, this is the
@@ -228,14 +215,11 @@ theorem realize_iInfAlong {c : IndexCoding ι κ} {φs : ι → L.BoundedFormula
   simp only [iInfAlong, realize_iInf]
   constructor
   · intro h i
-    have hi := h (c.encode i)
-    rwa [IndexCoding.pad_encode] at hi
+    simpa only [IndexCoding.pad_encode] using h (c.encode i)
   · intro h k
     rcases hd : c.decode k with _ | i
-    · rw [c.pad_of_decode_none hd]
-      simp
-    · rw [c.pad_of_decode_some hd]
-      exact h i
+    · simp only [c.pad_of_decode_none hd, realize_top]
+    · simpa only [c.pad_of_decode_some hd] using h i
 
 /-- The `⊥`-padding of a coded disjunction is semantically neutral, generically in the
 coding. -/
@@ -246,10 +230,8 @@ theorem realize_iSupAlong {c : IndexCoding ι κ} {φs : ι → L.BoundedFormula
   constructor
   · rintro ⟨k, hk⟩
     rcases hd : c.decode k with _ | i
-    · rw [c.pad_of_decode_none hd] at hk
-      simp at hk
-    · rw [c.pad_of_decode_some hd] at hk
-      exact ⟨i, hk⟩
+    · simp only [c.pad_of_decode_none hd, realize_bot] at hk
+    · exact ⟨i, by simpa only [c.pad_of_decode_some hd] using hk⟩
   · rintro ⟨i, hi⟩
     exact ⟨c.encode i, by rwa [IndexCoding.pad_encode]⟩
 
@@ -261,25 +243,19 @@ theorem realize_reindex (c : IndexCoding ι κ) :
       (reindex c φ).Realize v xs ↔ φ.Realize v xs := by
   intro n φ
   induction φ with
-  | falsum => intro v xs; exact Iff.rfl
-  | equal t₁ t₂ => intro v xs; exact Iff.rfl
-  | rel R ts => intro v xs; exact Iff.rfl
+  | falsum | equal | rel => intro v xs; exact Iff.rfl
   | imp φ ψ ihφ ihψ =>
     intro v xs
-    simp only [reindex_imp, realize_imp]
-    exact imp_congr (ihφ v xs) (ihψ v xs)
+    simpa only [reindex_imp, realize_imp] using imp_congr (ihφ v xs) (ihψ v xs)
   | all φ ih =>
     intro v xs
-    simp only [reindex_all, realize_all]
-    exact forall_congr' fun y ↦ ih v (Fin.snoc xs y)
+    simpa only [reindex_all, realize_all] using forall_congr' fun y ↦ ih v (Fin.snoc xs y)
   | iSup φs ih =>
     intro v xs
-    simp only [reindex_iSup, realize_iSupAlong]
-    exact exists_congr fun i ↦ ih i v xs
+    simpa only [reindex_iSup, realize_iSupAlong] using exists_congr fun i ↦ ih i v xs
   | iInf φs ih =>
     intro v xs
-    simp only [reindex_iInf, realize_iInfAlong]
-    exact forall_congr' fun i ↦ ih i v xs
+    simpa only [reindex_iInf, realize_iInfAlong] using forall_congr' fun i ↦ ih i v xs
 
 /-- Recoding an encodable-carrier formula into `L_{ω₁ω}` preserves realization. -/
 @[simp]
@@ -300,9 +276,7 @@ theorem BoundedFormulaInf.reindex_toInf (c : IndexCoding ι κ) :
       BoundedFormulaInf.reindex c (BoundedFormula.toInf φ) = BoundedFormula.toInf φ := by
   intro n φ
   induction φ with
-  | falsum => rfl
-  | equal t₁ t₂ => rfl
-  | rel R ts => rfl
+  | falsum | equal | rel => rfl
   | imp φ ψ ihφ ihψ => exact congrArg₂ BoundedFormulaInf.imp ihφ ihψ
   | all φ ih => exact congrArg BoundedFormulaInf.all ih
 

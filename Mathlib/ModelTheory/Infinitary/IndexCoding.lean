@@ -84,9 +84,7 @@ def trans (c₁ : IndexCoding ι κ) (c₂ : IndexCoding κ μ) : IndexCoding ι
 
 @[simp]
 theorem id_trans (c : IndexCoding ι κ) : (IndexCoding.id ι).trans c = c := by
-  refine ext rfl (funext fun k ↦ ?_)
-  simp only [trans, IndexCoding.id]
-  rcases c.decode k with _ | i <;> rfl
+  ext k <;> simp [trans, IndexCoding.id]
 
 @[simp]
 theorem trans_id (c : IndexCoding ι κ) : c.trans (IndexCoding.id κ) = c :=
@@ -127,15 +125,13 @@ def ofEquiv (e : ι ≃ κ) : IndexCoding ι κ :=
   ⟨e, fun k ↦ some (e.symm k), fun i ↦ by simp⟩
 
 @[simp]
-theorem ofEquiv_refl : ofEquiv (Equiv.refl ι) = IndexCoding.id ι := by
-  refine ext rfl (funext fun i ↦ ?_)
-  simp [ofEquiv, IndexCoding.id]
+theorem ofEquiv_refl : ofEquiv (Equiv.refl ι) = IndexCoding.id ι :=
+  rfl
 
 /-- `ofEquiv` turns equivalence composition into coding composition. -/
 theorem ofEquiv_trans (e₁ : ι ≃ κ) (e₂ : κ ≃ μ) :
     ofEquiv (e₁.trans e₂) = (ofEquiv e₁).trans (ofEquiv e₂) := by
-  refine ext rfl (funext fun m ↦ ?_)
-  simp [ofEquiv, trans]
+  ext m <;> simp [ofEquiv, trans]
 
 /-- The two codings of an equivalence compose to the identity coding. -/
 @[simp]
