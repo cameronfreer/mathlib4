@@ -5225,6 +5225,7 @@ public import Mathlib.ModelTheory.Infinitary.Countability
 public import Mathlib.ModelTheory.Infinitary.IndexCoding
 public import Mathlib.ModelTheory.Infinitary.LanguageMap
 public import Mathlib.ModelTheory.Infinitary.QuantifierRank
+public import Mathlib.ModelTheory.Infinitary.Reindex
 public import Mathlib.ModelTheory.Infinitary.Semantics
 public import Mathlib.ModelTheory.Infinitary.Syntax
 public import Mathlib.ModelTheory.LanguageMap

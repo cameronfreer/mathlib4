@@ -5,7 +5,7 @@ Authors: Cameron Freer
 -/
 module
 
-public import Mathlib.ModelTheory.Infinitary.Syntax
+public import Mathlib.ModelTheory.Infinitary.Reindex
 
 /-!
 # Language maps on infinitary formulas

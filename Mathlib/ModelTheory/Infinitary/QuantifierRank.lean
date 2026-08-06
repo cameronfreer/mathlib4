@@ -5,7 +5,7 @@ Authors: Cameron Freer
 -/
 module
 
-public import Mathlib.ModelTheory.Infinitary.Syntax
+public import Mathlib.ModelTheory.Infinitary.Reindex
 public import Mathlib.SetTheory.Ordinal.Family
 
 /-!
@@ -101,6 +101,30 @@ private theorem lift_iSup_ord {ι' : Type uι} (f : ι' → Ordinal.{uι}) :
     exact Ordinal.le_iSup (fun i ↦ Ordinal.lift.{uκ} (f i)) i
   · exact Ordinal.iSup_le fun i ↦ Ordinal.lift_le.mpr (Ordinal.le_iSup f i)
 
+/-- The lifted rank supremum of a neutrally padded family equals that of the original
+family: the padding contributes only rank-`0` branches. Shared engine for the two infinitary
+cases of `qrank_reindex`. -/
+private theorem lift_iSup_qrank_pad (c : IndexCoding ι κ) {D : L.BoundedFormulaInf κ α n}
+    (hD : D.qrank = 0) {φs : ι → L.BoundedFormulaInf ι α n}
+    (ih : ∀ i, Ordinal.lift.{uι} (reindex c (φs i)).qrank = Ordinal.lift.{uκ} (φs i).qrank) :
+    Ordinal.lift.{uι} (⨆ k, ((c.pad D fun i ↦ reindex c (φs i)) k).qrank) =
+      Ordinal.lift.{uκ} (⨆ i, (φs i).qrank) := by
+  haveI : Small.{max uι uκ} ι := small_max.{uκ} ι
+  haveI : Small.{max uι uκ} κ := small_max.{uι} κ
+  rw [lift_iSup_ord, lift_iSup_ord]
+  apply le_antisymm
+  · refine Ordinal.iSup_le fun k ↦ ?_
+    rcases hd : c.decode k with _ | i
+    · rw [c.pad_of_decode_none hd, hD, Ordinal.lift_zero]
+      exact Ordinal.bot_eq_zero ▸ bot_le
+    · rw [c.pad_of_decode_some hd, ih i]
+      exact Ordinal.le_iSup (fun i ↦ Ordinal.lift.{uκ} (φs i).qrank) i
+  · refine Ordinal.iSup_le fun i ↦ ?_
+    rw [← ih i]
+    have hb := Ordinal.le_iSup
+      (fun k ↦ Ordinal.lift.{uι} ((c.pad D fun i ↦ reindex c (φs i)) k).qrank) (c.encode i)
+    rwa [IndexCoding.pad_encode] at hb
+
 /-- Carrier transport preserves quantifier rank, up to `Ordinal.lift` between the two
 carriers' ordinal universes. The padding of the coded connectives contributes only rank-`0`
 branches, so the supremum survives — including over empty carriers, where both sides are
@@ -121,39 +145,11 @@ theorem qrank_reindex (c : IndexCoding ι κ) :
     simp only [reindex_all, qrank_all]
     rw [Ordinal.lift_succ, Ordinal.lift_succ, ih]
   | iSup φs ih =>
-    haveI : Small.{max uι uκ} ι := small_max.{uκ} ι
-    haveI : Small.{max uι uκ} κ := small_max.{uι} κ
     simp only [reindex_iSup, iSupAlong, qrank_iSup]
-    rw [lift_iSup_ord, lift_iSup_ord]
-    apply le_antisymm
-    · refine Ordinal.iSup_le fun k ↦ ?_
-      rcases hd : c.decode k with _ | i
-      · rw [c.pad_of_decode_none hd, qrank_bot, Ordinal.lift_zero]
-        exact Ordinal.bot_eq_zero ▸ bot_le
-      · rw [c.pad_of_decode_some hd, ih i]
-        exact Ordinal.le_iSup (fun i ↦ Ordinal.lift.{uκ} (φs i).qrank) i
-    · refine Ordinal.iSup_le fun i ↦ ?_
-      rw [← ih i]
-      have hb := Ordinal.le_iSup
-        (fun k ↦ Ordinal.lift.{uι} ((c.pad ⊥ fun i ↦ reindex c (φs i)) k).qrank) (c.encode i)
-      rwa [IndexCoding.pad_encode] at hb
+    exact lift_iSup_qrank_pad c qrank_bot ih
   | iInf φs ih =>
-    haveI : Small.{max uι uκ} ι := small_max.{uκ} ι
-    haveI : Small.{max uι uκ} κ := small_max.{uι} κ
     simp only [reindex_iInf, iInfAlong, qrank_iInf]
-    rw [lift_iSup_ord, lift_iSup_ord]
-    apply le_antisymm
-    · refine Ordinal.iSup_le fun k ↦ ?_
-      rcases hd : c.decode k with _ | i
-      · rw [c.pad_of_decode_none hd, qrank_top, Ordinal.lift_zero]
-        exact Ordinal.bot_eq_zero ▸ bot_le
-      · rw [c.pad_of_decode_some hd, ih i]
-        exact Ordinal.le_iSup (fun i ↦ Ordinal.lift.{uκ} (φs i).qrank) i
-    · refine Ordinal.iSup_le fun i ↦ ?_
-      rw [← ih i]
-      have hb := Ordinal.le_iSup
-        (fun k ↦ Ordinal.lift.{uι} ((c.pad ⊤ fun i ↦ reindex c (φs i)) k).qrank) (c.encode i)
-      rwa [IndexCoding.pad_encode] at hb
+    exact lift_iSup_qrank_pad c qrank_top ih
 
 /-- The recoding into `L_{ω₁ω}` preserves quantifier rank up to lift; since the target rank
 lives in `Ordinal.{0}`, its lift into the source universe is the whole content. -/

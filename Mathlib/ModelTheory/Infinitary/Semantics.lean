@@ -24,23 +24,24 @@ separate `L_{ω₁ω}` semantics, and no universe-specialized lemma set.
 
 ## Main statements
 
-- `realize_iInfAlong`, `realize_iSupAlong`: the `⊤`/`⊥` padding of the coded connectives is
-  semantically neutral, generically in the coding.
-- `realize_reindex`: carrier transport preserves realization (in both directions, being an
-  iff), hence also semantic equivalence.
-- `realize_toOmega`, `BoundedFormula.realize_toInf`: the recoding into `L_{ω₁ω}` and the
-  finitary embedding preserve realization.
+- One `@[simp]` realization lemma per constructor and derived connective, each a single
+  statement generic in the carrier and its universe (`realize_iInf`, `realize_alls`, …).
+- `BoundedFormula.realize_toInf`: the carrier-generic finitary embedding preserves
+  realization.
+
+Realization of the coded connectives and of carrier transport is in
+`Infinitary/Reindex.lean`.
 -/
 
 @[expose] public section
 
-universe u v u' uι uκ w
+universe u v u' uι w
 
 namespace FirstOrder
 
 namespace Language
 
-variable {L : Language.{u, v}} {ι : Type uι} {κ : Type uκ} {α : Type u'} {n : ℕ}
+variable {L : Language.{u, v}} {ι : Type uι} {α : Type u'} {n : ℕ}
 
 namespace BoundedFormulaInf
 
@@ -115,73 +116,6 @@ theorem realize_bot : (⊥ : L.BoundedFormulaInf ι α n).Realize v xs ↔ False
 theorem realize_ex {φ : L.BoundedFormulaInf ι α (n + 1)} :
     φ.ex.Realize v xs ↔ ∃ y : M, φ.Realize v (Fin.snoc xs y) := by
   simp only [BoundedFormulaInf.ex, realize_not, realize_all, not_forall, not_not]
-
-/-- The `⊤`-padding of a coded conjunction is semantically neutral, generically in the
-coding. -/
-@[simp]
-theorem realize_iInfAlong {c : IndexCoding ι κ} {φs : ι → L.BoundedFormulaInf κ α n} :
-    (iInfAlong c φs).Realize v xs ↔ ∀ i, (φs i).Realize v xs := by
-  simp only [iInfAlong, realize_iInf]
-  constructor
-  · intro h i
-    have hi := h (c.encode i)
-    rwa [IndexCoding.pad_encode] at hi
-  · intro h k
-    rcases hd : c.decode k with _ | i
-    · rw [c.pad_of_decode_none hd]
-      simp
-    · rw [c.pad_of_decode_some hd]
-      exact h i
-
-/-- The `⊥`-padding of a coded disjunction is semantically neutral, generically in the
-coding. -/
-@[simp]
-theorem realize_iSupAlong {c : IndexCoding ι κ} {φs : ι → L.BoundedFormulaInf κ α n} :
-    (iSupAlong c φs).Realize v xs ↔ ∃ i, (φs i).Realize v xs := by
-  simp only [iSupAlong, realize_iSup]
-  constructor
-  · rintro ⟨k, hk⟩
-    rcases hd : c.decode k with _ | i
-    · rw [c.pad_of_decode_none hd] at hk
-      simp at hk
-    · rw [c.pad_of_decode_some hd] at hk
-      exact ⟨i, hk⟩
-  · rintro ⟨i, hi⟩
-    exact ⟨c.encode i, by rwa [IndexCoding.pad_encode]⟩
-
-/-- Carrier transport preserves realization. Being an iff, this transports semantic
-equivalence in both directions as well. -/
-@[simp]
-theorem realize_reindex (c : IndexCoding ι κ) :
-    ∀ {n} (φ : L.BoundedFormulaInf ι α n) (v : α → M) (xs : Fin n → M),
-      (reindex c φ).Realize v xs ↔ φ.Realize v xs := by
-  intro n φ
-  induction φ with
-  | falsum => intro v xs; exact Iff.rfl
-  | equal t₁ t₂ => intro v xs; exact Iff.rfl
-  | rel R ts => intro v xs; exact Iff.rfl
-  | imp φ ψ ihφ ihψ =>
-    intro v xs
-    simp only [reindex_imp, realize_imp]
-    exact imp_congr (ihφ v xs) (ihψ v xs)
-  | all φ ih =>
-    intro v xs
-    simp only [reindex_all, realize_all]
-    exact forall_congr' fun y ↦ ih v (Fin.snoc xs y)
-  | iSup φs ih =>
-    intro v xs
-    simp only [reindex_iSup, realize_iSupAlong]
-    exact exists_congr fun i ↦ ih i v xs
-  | iInf φs ih =>
-    intro v xs
-    simp only [reindex_iInf, realize_iInfAlong]
-    exact forall_congr' fun i ↦ ih i v xs
-
-/-- Recoding an encodable-carrier formula into `L_{ω₁ω}` preserves realization. -/
-@[simp]
-theorem realize_toOmega [Encodable ι] (φ : L.BoundedFormulaInf ι α n) (v : α → M)
-    (xs : Fin n → M) : (toOmega φ).Realize v xs ↔ φ.Realize v xs :=
-  realize_reindex _ φ v xs
 
 end BoundedFormulaInf
 

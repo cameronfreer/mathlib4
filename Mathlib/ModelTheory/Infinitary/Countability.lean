@@ -5,7 +5,7 @@ Authors: Cameron Freer
 -/
 module
 
-public import Mathlib.ModelTheory.Infinitary.Semantics
+public import Mathlib.ModelTheory.Infinitary.Reindex
 public import Mathlib.SetTheory.Cardinal.Aleph
 
 /-!
@@ -119,6 +119,11 @@ theorem IsKappa.mono {κ κ' : Cardinal.{uι}} (hle : κ ≤ κ') {φ : L.Bounde
   | iSup hcard _ ih => exact .iSup (hcard.trans_le hle) ih
   | iInf hcard _ ih => exact .iInf (hcard.trans_le hle) ih
 
+private theorem countable_of_mk_lt_aleph_one {ι : Type uι} (h : Cardinal.mk ι < Cardinal.aleph 1) :
+    Countable ι := by
+  rw [← Cardinal.succ_aleph0] at h
+  exact Cardinal.mk_le_aleph0_iff.mp (Order.lt_succ_iff.mp h)
+
 /-- `IsCountable` is `IsKappa ℵ₁`. -/
 theorem isCountable_iff_isKappa_aleph1 {φ : L.BoundedFormulaInf ι α n} :
     IsCountable φ ↔ IsKappa (Cardinal.aleph 1) φ := by
@@ -139,16 +144,8 @@ theorem isCountable_iff_isKappa_aleph1 {φ : L.BoundedFormulaInf ι α n} :
     | rel R ts => exact .rel R ts
     | imp _ _ ih₁ ih₂ => exact .imp ih₁ ih₂
     | all _ ih => exact .all ih
-    | iSup hcard _ ih =>
-      have : Countable ι := by
-        rw [← Cardinal.succ_aleph0] at hcard
-        exact Cardinal.mk_le_aleph0_iff.mp (Order.lt_succ_iff.mp hcard)
-      exact .iSup this ih
-    | iInf hcard _ ih =>
-      have : Countable ι := by
-        rw [← Cardinal.succ_aleph0] at hcard
-        exact Cardinal.mk_le_aleph0_iff.mp (Order.lt_succ_iff.mp hcard)
-      exact .iInf this ih
+    | iSup hcard _ ih => exact .iSup (countable_of_mk_lt_aleph_one hcard) ih
+    | iInf hcard _ ih => exact .iInf (countable_of_mk_lt_aleph_one hcard) ih
 
 /-! ### The index bound -/
 
