@@ -115,6 +115,18 @@ instance : Inhabited (L.BoundedFormulaInf ι α n) :=
 protected def ex (φ : L.BoundedFormulaInf ι α (n + 1)) : L.BoundedFormulaInf ι α n :=
   φ.not.all.not
 
+/-- Places universal quantifiers on all in-scope bound variables of an infinitary bounded
+formula (mirrors the finitary `BoundedFormula.alls`). -/
+def alls : ∀ {n}, L.BoundedFormulaInf ι α n → L.FormulaInf ι α
+  | 0, φ => φ
+  | _ + 1, φ => φ.all.alls
+
+/-- Places existential quantifiers on all in-scope bound variables of an infinitary bounded
+formula (mirrors the finitary `BoundedFormula.exs`). -/
+def exs : ∀ {n}, L.BoundedFormulaInf ι α n → L.FormulaInf ι α
+  | 0, φ => φ
+  | _ + 1, φ => φ.ex.exs
+
 /-- An `ι`-indexed infinitary conjunction at carrier `κ`, along a coding: decoded indices
 select their conjunct, undecodable ones are padded with `⊤`. -/
 def iInfAlong (c : IndexCoding ι κ) (φs : ι → L.BoundedFormulaInf κ α n) :
@@ -208,6 +220,25 @@ theorem reindex_id : ∀ {n} (φ : L.BoundedFormulaInf ι α n), reindex (.id ι
   | all φ ih => rw [reindex_all, ih]
   | iSup φs ih => exact congrArg BoundedFormulaInf.iSup (funext fun i ↦ ih i)
   | iInf φs ih => exact congrArg BoundedFormulaInf.iInf (funext fun i ↦ ih i)
+
+/-- The universal bound-variable closure commutes with carrier transport, syntactically. -/
+@[simp]
+theorem reindex_alls (c : IndexCoding ι κ) :
+    ∀ {n} (φ : L.BoundedFormulaInf ι α n), reindex c φ.alls = (reindex c φ).alls
+  | 0, _ => rfl
+  | _ + 1, φ => by
+    rw [show (φ.alls : L.FormulaInf ι α) = φ.all.alls from rfl, reindex_alls c φ.all,
+      reindex_all]
+    rfl
+
+/-- The existential bound-variable closure commutes with carrier transport, syntactically. -/
+@[simp]
+theorem reindex_exs (c : IndexCoding ι κ) :
+    ∀ {n} (φ : L.BoundedFormulaInf ι α n), reindex c φ.exs = (reindex c φ).exs
+  | 0, _ => rfl
+  | _ + 1, φ => by
+    rw [show (φ.exs : L.FormulaInf ι α) = φ.ex.exs from rfl, reindex_exs c φ.ex, reindex_ex]
+    rfl
 
 /-- Reindexing along a composite coding is the composite of the reindexings — syntactically,
 not merely up to semantic equivalence. This is the coherence law that lets carrier transports
