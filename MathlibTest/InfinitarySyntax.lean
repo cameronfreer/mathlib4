@@ -231,20 +231,21 @@ sees the target carrier. -/
 example {ι : Type uι} {κ : Type w} (c : IndexCoding ι κ) {x : Cardinal.{w}}
     (hx : Cardinal.mk κ < x) (φ : L.BoundedFormulaInf ι α n) :
     (reindex c φ).IsKappa x :=
-  IsKappa.reindex_of_target c hx φ
+  isKappa_of_mk_lt hx _
 
 /-- POSITIVE: the reindexed index bound is controlled by the target carrier. -/
 example {ι : Type uι} {κ : Type w} (c : IndexCoding ι κ) (φ : L.BoundedFormulaInf ι α n) :
     (reindex c φ).indexBound ≤ Cardinal.mk κ :=
-  indexBound_reindex_le c φ
+  indexBound_le_mk _
 
 /-- NEGATIVE: an infinitary node coded into an uncountable carrier is NOT structurally
 countable — `iInfAlong` is not claimed to preserve `IsCountable`, even though the padding is
 semantically neutral. This is the deliberate representational cost of fixed carriers. -/
 example {ι : Type uι} {κ : Type w} [Uncountable κ] (c : IndexCoding ι κ)
     (φs : ι → L.BoundedFormulaInf κ α n) :
-    ¬(iInfAlong c φs).IsCountable := fun h ↦
-  not_countable h.iInf_countable
+    ¬(iInfAlong c φs).IsCountable := fun h ↦ by
+  cases h with
+  | iInf hc _ => exact not_countable hc
 
 end Countability
 
