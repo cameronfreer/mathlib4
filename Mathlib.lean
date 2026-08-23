@@ -5725,6 +5725,11 @@ public import Mathlib.ModelTheory.Equivalence
 public import Mathlib.ModelTheory.FinitelyGenerated
 public import Mathlib.ModelTheory.Fraisse
 public import Mathlib.ModelTheory.Graph
+public import Mathlib.ModelTheory.Infinitary.IndexCoding
+public import Mathlib.ModelTheory.Infinitary.QuantifierRank
+public import Mathlib.ModelTheory.Infinitary.Reindex
+public import Mathlib.ModelTheory.Infinitary.Semantics
+public import Mathlib.ModelTheory.Infinitary.Syntax
 public import Mathlib.ModelTheory.LanguageMap
 public import Mathlib.ModelTheory.Order
 public import Mathlib.ModelTheory.PartialEquiv
