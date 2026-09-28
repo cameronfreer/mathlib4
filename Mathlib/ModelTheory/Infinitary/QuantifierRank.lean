@@ -187,7 +187,7 @@ theorem qrank_reindex (c : IndexCoding ι κ) :
       Monotone.map_max (fun _ _ h => Ordinal.lift_le.mpr h), ihφ, ihψ]
   | all φ ih =>
     change Ordinal.lift.{uι} (Order.succ _) = Ordinal.lift.{uκ} (Order.succ _)
-    rw [Ordinal.lift_succ, Ordinal.lift_succ, ih]
+    simp only [Order.succ_eq_add_one, Ordinal.lift_add_one, ih]
   | iSup φs ih => exact lift_iSup_qrank_pad c ⊥ qrank_bot φs _ ih
   | iInf φs ih => exact lift_iSup_qrank_pad c ⊤ qrank_top φs _ ih
 
@@ -227,7 +227,7 @@ theorem qrank_toInf : ∀ {n} (φ : L.BoundedFormula α n),
       Monotone.map_max (fun _ _ h => Ordinal.lift_le.mpr h), ihφ, ihψ]
   | all φ ih =>
     change Ordinal.lift.{uκ} (Order.succ _) = Ordinal.lift.{uι} (Order.succ _)
-    rw [Ordinal.lift_succ, Ordinal.lift_succ, ih]
+    simp only [Order.succ_eq_add_one, Ordinal.lift_add_one, ih]
 
 end Finitary
 
